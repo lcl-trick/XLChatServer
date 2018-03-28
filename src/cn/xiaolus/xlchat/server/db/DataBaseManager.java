@@ -18,7 +18,7 @@ public class DataBaseManager extends DataBaseConnector {
 	public boolean signin(String user, String password) {
 		try {
 			Connection connection = getConnection();
-			PreparedStatement sql = connection.prepareStatement("select * from cnexp.users where user = ?");
+			PreparedStatement sql = connection.prepareStatement("select * from xlchat.users where user = ?");
 			sql.setString(1, user);
 			ResultSet result = sql.executeQuery();
 			while(result.next()) {
@@ -53,7 +53,7 @@ public class DataBaseManager extends DataBaseConnector {
 			String passwordhashb64 = Base64.getEncoder().encodeToString(passwordhash);
 //			System.out.println("passwordhashb64:"+passwordhashb64);
 			Connection connection = getConnection();
-			PreparedStatement sql = connection.prepareStatement("insert into cnexp.users (user,name,passwdhashb64,salt) values(?,?,?,?)");
+			PreparedStatement sql = connection.prepareStatement("insert into xlchat.users (user,name,passwdhashb64,salt) values(?,?,?,?)");
 			sql.setString(1, user);
 			sql.setString(2, name);
 			sql.setString(3, passwordhashb64);

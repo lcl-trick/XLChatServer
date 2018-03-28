@@ -9,9 +9,11 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.BoxLayout;
 import javax.swing.JTextPane;
@@ -45,10 +47,11 @@ public class Server extends JFrame {
 	private ServerSocket serverSocket;
 	private final int PORT = 9999;
 	private final UserManager userManager = new UserManager(); 
-	private final DefaultTableModel onlineUserDtm = new DefaultTableModel();
+	private final DefaultTableModel onlineUserDtm = new DefaultTableModel(new String[]{"用户名","登录时间","IP地址","端口"},0);
 	private static final long serialVersionUID = 8482455133264907039L;
 	private JPanel contentPane;
 	private JTable tableOnlineUsers;
+	private JTextPane textPaneMsgRecord;
 
 	/**
 	 * Launch the application.
@@ -84,14 +87,16 @@ public class Server extends JFrame {
 		splitPane.setResizeWeight(0.5);
 		centerPanel.add(splitPane);
 		
-		JTextPane textPaneMsgRecord = new JTextPane();
-		textPaneMsgRecord.setBorder(new TitledBorder(null, "\u6D88\u606F\u8BB0\u5F55", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		splitPane.setLeftComponent(textPaneMsgRecord);
+		textPaneMsgRecord = new JTextPane();
+		textPaneMsgRecord.setEditable(false);
+		textPaneMsgRecord.setBorder(new TitledBorder(null, "日志记录", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		JScrollPane scrollPane_1 = new JScrollPane(textPaneMsgRecord);
+		splitPane.setLeftComponent(scrollPane_1);
 		
 		tableOnlineUsers = new JTable();
-		tableOnlineUsers.setBorder(new TitledBorder(null, "\u5728\u7EBF\u7528\u6237", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		tableOnlineUsers.setModel(onlineUserDtm);
-		splitPane.setRightComponent(tableOnlineUsers);
+		JScrollPane scrollPane_2 = new JScrollPane(tableOnlineUsers);
+		splitPane.setRightComponent(scrollPane_2);
 		
 		JPanel southPanel = new JPanel();
 		contentPane.add(southPanel, BorderLayout.SOUTH);
@@ -112,7 +117,10 @@ public class Server extends JFrame {
 	public void startServer() {
 		try {
 			serverSocket = new ServerSocket(PORT);
-			System.out.println("服务器启动");
+			EventQueue.invokeLater(()->{
+				String oriText = textPaneMsgRecord.getText();
+				textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("服务器启动").toString());
+			});
 			while(true) {
 				Socket socket = serverSocket.accept();
 				new Thread(new UserHandler(socket)).start();
@@ -145,14 +153,15 @@ public class Server extends JFrame {
 					XCMessage msg = null;
 					if ((msg = XCMessage.fromJSONObject(receive, XCChatMessage.class) )!=null) {
 						processChatMessage((XCChatMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
+						processSignupMessage((XCSignupMessage)msg);
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCSigninMessage.class) )!=null) {
 						processSigninMessage((XCSigninMessage)msg);
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignoutMessage.class) )!=null) {
 						processSignoutMessage((XCSignoutMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
-						processSignupMessage((XCSignupMessage)msg);
 					} else {
-						System.out.println("接收到无法解析的JSON对象："+receive.toString());
+						String oriText = textPaneMsgRecord.getText();
+						textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("接收到无法解析的JSON对象："+receive.toString()).toString());
 					}
 				}
 			} catch (IOException e) {
@@ -173,10 +182,16 @@ public class Server extends JFrame {
 			String dstUser = msg.getDstUser();
 			String msgContent = msg.getMsgContent();
 			if (dstUser.equals("")) {
-				System.out.println("转发 "+srcUser+" 发送的公聊消息："+msgContent);
+				EventQueue.invokeLater(()->{
+					String oriText = textPaneMsgRecord.getText();
+					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发送的公聊消息："+msgContent).toString());
+				});
 				transferMsgToOtherUsers(msg);
 			} else {
-				System.out.println("转发 "+srcUser+" 发给 "+dstUser+" 的私聊消息："+msgContent);
+				EventQueue.invokeLater(()->{
+					String oriText = textPaneMsgRecord.getText();
+					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发给 "+dstUser+" 的私聊消息："+msgContent).toString());
+				});
 				JSONOutputStream jos = userManager.getUserJSONOutputStream(dstUser);
 				synchronized (jos) {
 					try {
@@ -190,70 +205,40 @@ public class Server extends JFrame {
 			}
 		}
 		
-//		private void processSigninMessage(XCSigninMessage msg) {
-//			int flag = 0;
-//			String srcUser = msg.getSrcUser();
-//			String password = msg.getPassword();
-//			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-//					"jdbc:mysql://db.cstacauc.cn?useSSL=true",
-//					"user", "password".toCharArray());
-//			XCStateMessage message = new XCStateMessage();
-//			message.setSrcUser("");
-//			message.setDstUser(srcUser);
-//			try {
-//				dbManager.connect();
-//				if (dbManager.signin(srcUser, password)) {
-//					message.setStatus(0);
-//					message.setError("");
-//					XCUserStateMessage onlineMessage = new XCUserStateMessage();
-//					onlineMessage.setSrcUser(srcUser);
-//					onlineMessage.setUserOnline(true);
-//					transferMsgToOtherUsers(onlineMessage);
-//					System.out.println(srcUser+" 已登录");
-//					userManager.addUser(srcUser, currentUserSocket, jis, jos);
-//					flag = 1;
-//				} else {
-//					message.setStatus(-1);
-//					message.setError("用户名或密码错误");
-//				}
-//			} catch (ClassNotFoundException | SQLException e) {
-//				message.setStatus(-1);
-//				message.setError(e.getLocalizedMessage());
-//				e.printStackTrace();
-//			}
-//			JSONObject send = new JSONObject(message);
-//			synchronized (jos) {
-//				try {
-//					jos.writeJSONObject(send);
-//					jos.flush();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			if (flag == 1) {
-//				XCUserStateMessage onlineListMessage = new XCUserStateMessage();
-//				onlineListMessage.setDstUser(srcUser);
-//				onlineListMessage.setUserOnline(true);
-//				sendOnlineUserList(onlineListMessage);
-//			}
-//		}
-		
 		private void processSigninMessage(XCSigninMessage msg) {
 			int flag = 0;
 			String srcUser = msg.getSrcUser();
 			String password = msg.getPassword();
+			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
+					"jdbc:mysql://db.cstacauc.cn",
+					"xlcuser", "xlcuser".toCharArray());
 			XCStateMessage message = new XCStateMessage();
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
+			try {
+				dbManager.connect();
+				if (dbManager.signin(srcUser, password)) {
 					message.setStatus(0);
 					message.setError("");
 					XCUserStateMessage onlineMessage = new XCUserStateMessage();
 					onlineMessage.setSrcUser(srcUser);
 					onlineMessage.setUserOnline(true);
 					transferMsgToOtherUsers(onlineMessage);
-					System.out.println(srcUser+" 已登录");
-					userManager.addUser(srcUser, currentUserSocket, jis, jos);
+					EventQueue.invokeLater(()->{
+						String oriText = textPaneMsgRecord.getText();
+						textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已登录").toString());
+					});
+					userManager.addUser(onlineUserDtm, srcUser, currentUserSocket, jis, jos);
 					flag = 1;
+				} else {
+					message.setStatus(-1);
+					message.setError("用户名或密码错误");
+				}
+			} catch (ClassNotFoundException | SQLException e) {
+				message.setStatus(-1);
+				message.setError(e.getLocalizedMessage());
+				e.printStackTrace();
+			}
 			JSONObject send = new JSONObject(message);
 			synchronized (jos) {
 				try {
@@ -283,8 +268,11 @@ public class Server extends JFrame {
 				offlineMessage.setSrcUser(srcUser);
 				offlineMessage.setUserOnline(false);
 				transferMsgToOtherUsers(offlineMessage);
-				System.out.println(srcUser+" 已注销");
-				userManager.removeUser(srcUser);
+				EventQueue.invokeLater(()->{
+					String oriText = textPaneMsgRecord.getText();
+					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注销").toString());
+				});
+				userManager.removeUser(onlineUserDtm, srcUser);
 			} else {
 				message.setStatus(-1);
 				message.setError("登录状态异常：未登录用户不可以注销");
@@ -309,12 +297,16 @@ public class Server extends JFrame {
 			message.setDstUser(srcUser);
 			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
 					"jdbc:mysql://db.cstacauc.cn?useSSL=true",
-					"user", "password".toCharArray());
+					"xlcuser", "xlcuser".toCharArray());
 			try {
 				dbManager.connect();
 				if (dbManager.signup(srcUser, name, password)) {
 					message.setStatus(0);
 					message.setError("");
+					EventQueue.invokeLater(()->{
+						String oriText = textPaneMsgRecord.getText();
+						textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注册").toString());
+					});
 				} else {
 					message.setStatus(-1);
 					message.setError("无法注册");
@@ -442,11 +434,14 @@ class UserManager {
 	 * @param socket 用户的Socket对象
 	 * @return 增加成功返回true，否则返回false
 	 */
-	public boolean addUser(String username, Socket socket, JSONInputStream jis,JSONOutputStream jos) {
+	public boolean addUser(DefaultTableModel dtm, String username, Socket socket, JSONInputStream jis,JSONOutputStream jos) {
 		if (username == null || socket == null) {
 			return false;
 		}
 		onlineUsers.put(username, new User(socket,jis,jos));
+		EventQueue.invokeLater(()->{
+			dtm.addRow(new String[]{username,new Date().toString(),socket.getInetAddress().getHostAddress(),String.valueOf(socket.getPort())});
+		});
 		return true;
 	}
 	/**
@@ -454,8 +449,17 @@ class UserManager {
 	 * @param username
 	 * @return
 	 */
-	public boolean removeUser(String username) {
+	public boolean removeUser(DefaultTableModel dtm, String username) {
 		if (isUserOnline(username)) {
+			Set<String> set = onlineUsers.keySet();
+			int i = 0;
+			for (String string : set) {
+				if (string.equals(username)) {
+					break;
+				}
+				i++;
+			}
+			dtm.removeRow(i);
 			onlineUsers.remove(username);
 			return true;
 		}
