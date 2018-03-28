@@ -3,10 +3,9 @@ package cn.xiaolus.xlchat.server.ui;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,8 +21,17 @@ import javax.swing.JButton;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
+import org.json.JSONObject;
+
+import cn.xiaolus.xlchat.server.db.DataBaseManager;
+import cn.xiaolus.xlchat.server.util.JSONInputStream;
+import cn.xiaolus.xlchat.server.util.JSONOutputStream;
 import cn.xiaolus.xlchat.server.util.XCChatMessage;
 import cn.xiaolus.xlchat.server.util.XCMessage;
+import cn.xiaolus.xlchat.server.util.XCSigninMessage;
+import cn.xiaolus.xlchat.server.util.XCSignoutMessage;
+import cn.xiaolus.xlchat.server.util.XCSignupMessage;
+import cn.xiaolus.xlchat.server.util.XCStateMessage;
 import cn.xiaolus.xlchat.server.util.XCUserStateMessage;
 
 import java.awt.event.ActionListener;
@@ -81,6 +89,7 @@ public class Server extends JFrame {
 		splitPane.setLeftComponent(textPaneMsgRecord);
 		
 		tableOnlineUsers = new JTable();
+		tableOnlineUsers.setBorder(new TitledBorder(null, "\u5728\u7EBF\u7528\u6237", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		tableOnlineUsers.setModel(onlineUserDtm);
 		splitPane.setRightComponent(tableOnlineUsers);
 		
@@ -115,14 +124,14 @@ public class Server extends JFrame {
 	
 	class UserHandler implements Runnable {
 		private final Socket currentUserSocket;
-		private ObjectInputStream ois;
-		private ObjectOutputStream oos;
+		private JSONInputStream jis;
+		private JSONOutputStream jos;
 		
 		public UserHandler(Socket socket) {
 			currentUserSocket = socket;
 			try {
-				ois = new ObjectInputStream(currentUserSocket.getInputStream());
-				oos = new ObjectOutputStream(currentUserSocket.getOutputStream());
+				jis = new JSONInputStream(currentUserSocket.getInputStream());
+				jos = new JSONOutputStream(currentUserSocket.getOutputStream());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -132,18 +141,20 @@ public class Server extends JFrame {
 		public void run() {
 			try {
 				while(true) {
-					XCMessage message = (XCMessage) ois.readObject();
-					if (message instanceof XCUserStateMessage) {
-//						处理用户状态消息
-						processUserStateMessage((XCUserStateMessage) message);
-					} else if (message instanceof XCChatMessage) {
-//						处理聊天消息
+					JSONObject receive = jis.readJSONObject();
+					XCMessage msg = null;
+					if ((msg = XCMessage.fromJSONObject(receive, XCChatMessage.class) )!=null) {
+						processChatMessage((XCChatMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCSigninMessage.class) )!=null) {
+						processSigninMessage((XCSigninMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignoutMessage.class) )!=null) {
+						processSignoutMessage((XCSignoutMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
+						processSignupMessage((XCSignupMessage)msg);
 					} else {
-						System.out.println("见鬼了");
+						System.out.println("接收到无法解析的JSON对象："+receive.toString());
 					}
 				}
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			} finally {
@@ -157,57 +168,207 @@ public class Server extends JFrame {
 			}
 		}
 		
-		public void processUserStateMessage(XCUserStateMessage msg) {
+		private void processChatMessage(XCChatMessage msg) {
 			String srcUser = msg.getSrcUser();
-			if(msg.isUserOnline()) {
-				if (userManager.isUserOnline(srcUser)) {
-					System.out.println("拒绝重复登录请求");
-					return;
-				} else {
-					userManager.addUser(srcUser, currentUserSocket, ois, oos);
-					String[] users = userManager.getAllOnlineUsers();
-					for(String user : users) {
-						XCUserStateMessage userStateMessage = new XCUserStateMessage(user, srcUser, true);
-						synchronized (userStateMessage) {
-							try {
-								oos.writeObject(userStateMessage);
-								oos.flush();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
+			String dstUser = msg.getDstUser();
+			String msgContent = msg.getMsgContent();
+			if (dstUser.equals("")) {
+				System.out.println("转发 "+srcUser+" 发送的公聊消息："+msgContent);
+				transferMsgToOtherUsers(msg);
+			} else {
+				System.out.println("转发 "+srcUser+" 发给 "+dstUser+" 的私聊消息："+msgContent);
+				JSONOutputStream jos = userManager.getUserJSONOutputStream(dstUser);
+				synchronized (jos) {
+					try {
+						JSONObject send = new JSONObject(msg);
+						jos.writeJSONObject(send);
+						jos.flush();
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
-					transferMsgToOtherUsers(msg);
 				}
-			} else if(msg.isUserOffline()) {
-				if (userManager.isUserOnline(srcUser)) {
-					userManager.removeUser(srcUser);
-					for (int i = 0; i < onlineUserDtm.getRowCount(); i++) {
-						if (onlineUserDtm.getValueAt(i, 0).equals(srcUser)) {
-							onlineUserDtm.removeRow(i);
-						}
-					}
-					transferMsgToOtherUsers(msg);
+			}
+		}
+		
+//		private void processSigninMessage(XCSigninMessage msg) {
+//			int flag = 0;
+//			String srcUser = msg.getSrcUser();
+//			String password = msg.getPassword();
+//			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
+//					"jdbc:mysql://db.cstacauc.cn?useSSL=true",
+//					"user", "password".toCharArray());
+//			XCStateMessage message = new XCStateMessage();
+//			message.setSrcUser("");
+//			message.setDstUser(srcUser);
+//			try {
+//				dbManager.connect();
+//				if (dbManager.signin(srcUser, password)) {
+//					message.setStatus(0);
+//					message.setError("");
+//					XCUserStateMessage onlineMessage = new XCUserStateMessage();
+//					onlineMessage.setSrcUser(srcUser);
+//					onlineMessage.setUserOnline(true);
+//					transferMsgToOtherUsers(onlineMessage);
+//					System.out.println(srcUser+" 已登录");
+//					userManager.addUser(srcUser, currentUserSocket, jis, jos);
+//					flag = 1;
+//				} else {
+//					message.setStatus(-1);
+//					message.setError("用户名或密码错误");
+//				}
+//			} catch (ClassNotFoundException | SQLException e) {
+//				message.setStatus(-1);
+//				message.setError(e.getLocalizedMessage());
+//				e.printStackTrace();
+//			}
+//			JSONObject send = new JSONObject(message);
+//			synchronized (jos) {
+//				try {
+//					jos.writeJSONObject(send);
+//					jos.flush();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if (flag == 1) {
+//				XCUserStateMessage onlineListMessage = new XCUserStateMessage();
+//				onlineListMessage.setDstUser(srcUser);
+//				onlineListMessage.setUserOnline(true);
+//				sendOnlineUserList(onlineListMessage);
+//			}
+//		}
+		
+		private void processSigninMessage(XCSigninMessage msg) {
+			int flag = 0;
+			String srcUser = msg.getSrcUser();
+			String password = msg.getPassword();
+			XCStateMessage message = new XCStateMessage();
+			message.setSrcUser("");
+			message.setDstUser(srcUser);
+					message.setStatus(0);
+					message.setError("");
+					XCUserStateMessage onlineMessage = new XCUserStateMessage();
+					onlineMessage.setSrcUser(srcUser);
+					onlineMessage.setUserOnline(true);
+					transferMsgToOtherUsers(onlineMessage);
+					System.out.println(srcUser+" 已登录");
+					userManager.addUser(srcUser, currentUserSocket, jis, jos);
+					flag = 1;
+			JSONObject send = new JSONObject(message);
+			synchronized (jos) {
+				try {
+					jos.writeJSONObject(send);
+					jos.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (flag == 1) {
+				XCUserStateMessage onlineListMessage = new XCUserStateMessage();
+				onlineListMessage.setDstUser(srcUser);
+				onlineListMessage.setUserOnline(true);
+				sendOnlineUserList(onlineListMessage);
+			}
+		}
+		
+		private void processSignoutMessage(XCSignoutMessage msg) {
+			String srcUser = msg.getSrcUser();
+			XCStateMessage message = new XCStateMessage();
+			message.setSrcUser("");
+			message.setDstUser(srcUser);
+			if (userManager.isUserOnline(srcUser)) {
+				message.setStatus(0);
+				message.setError("");
+				XCUserStateMessage offlineMessage = new XCUserStateMessage();
+				offlineMessage.setSrcUser(srcUser);
+				offlineMessage.setUserOnline(false);
+				transferMsgToOtherUsers(offlineMessage);
+				System.out.println(srcUser+" 已注销");
+				userManager.removeUser(srcUser);
+			} else {
+				message.setStatus(-1);
+				message.setError("登录状态异常：未登录用户不可以注销");
+			}
+			JSONObject send = new JSONObject(message);
+			synchronized (jos) {
+				try {
+					jos.writeJSONObject(send);
+					jos.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private void processSignupMessage(XCSignupMessage msg) {
+			String srcUser = msg.getSrcUser();
+			String name = msg.getName();
+			String password = msg.getPassword();
+			XCStateMessage message = new XCStateMessage();
+			message.setSrcUser("");
+			message.setDstUser(srcUser);
+			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
+					"jdbc:mysql://db.cstacauc.cn?useSSL=true",
+					"user", "password".toCharArray());
+			try {
+				dbManager.connect();
+				if (dbManager.signup(srcUser, name, password)) {
+					message.setStatus(0);
+					message.setError("");
 				} else {
-					System.out.println("收到了幽灵👻消息");
+					message.setStatus(-1);
+					message.setError("无法注册");
 				}
-			}	
+			} catch (ClassNotFoundException | SQLException e) {
+				message.setStatus(-1);
+				message.setError("无法注册");
+				e.printStackTrace();
+			}
+			
+			JSONObject send = new JSONObject(message);
+			synchronized (jos) {
+				try {
+					jos.writeJSONObject(send);
+					jos.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private void sendOnlineUserList(XCUserStateMessage onlineListMessage) {
+			String[] users = userManager.getAllOnlineUsers();
+			for (String user : users) {
+				onlineListMessage.setSrcUser(user);
+				JSONObject send = new JSONObject(onlineListMessage);
+				synchronized (jos) {
+					try {
+						jos.writeJSONObject(send);
+						jos.flush();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 		}
 		
 		private void transferMsgToOtherUsers(XCMessage msg) {
 			String [] users = userManager.getAllOnlineUsers();
 			for (String user : users) {
 				if (!msg.getSrcUser().equals(user)) {
-					ObjectOutputStream oos = userManager.getUserObjectOutputStream(user);
-					synchronized (oos) {
+					msg.setDstUser("");
+					JSONOutputStream jos = userManager.getUserJSONOutputStream(user);
+					synchronized (jos) {
+						JSONObject send = new JSONObject(msg);
 						try {
-							oos.writeObject(msg);
-							oos.flush();
+							jos.writeJSONObject(send);
+							jos.flush();
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
 					}
 				} else {
+					System.out.println("不发送给自己，skipped");
 					continue;
 				}
 			}
@@ -239,13 +400,13 @@ class UserManager {
 		return onlineUsers.isEmpty();
 	}
 	/**
-	 * 返回一个用户的对象输出流
+	 * 返回一个用户的JSON输出流
 	 * @param username 用户名
-	 * @return 对象输出流对象
+	 * @return JSON输出流对象
 	 */
-	public ObjectOutputStream getUserObjectOutputStream(String username) {
+	public JSONOutputStream getUserJSONOutputStream(String username) {
 		if (isUserOnline(username)) {
-			return onlineUsers.get(username).getOos();
+			return onlineUsers.get(username).getJos();
 		} else {
 			return null;
 		}
@@ -256,9 +417,9 @@ class UserManager {
 	 * @param username 用户名
 	 * @return 对象输入流对象
 	 */
-	public ObjectInputStream getUserObjectInputStream(String username) {
+	public JSONInputStream getUserJSONInputStream(String username) {
 		if (isUserOnline(username)) {
-			return onlineUsers.get(username).getOis();
+			return onlineUsers.get(username).getJis();
 		} else {
 			return null;
 		}
@@ -281,11 +442,11 @@ class UserManager {
 	 * @param socket 用户的Socket对象
 	 * @return 增加成功返回true，否则返回false
 	 */
-	public boolean addUser(String username, Socket socket, ObjectInputStream ois,ObjectOutputStream oos) {
+	public boolean addUser(String username, Socket socket, JSONInputStream jis,JSONOutputStream jos) {
 		if (username == null || socket == null) {
 			return false;
 		}
-		onlineUsers.put(username, new User(socket,ois,oos));
+		onlineUsers.put(username, new User(socket,jis,jos));
 		return true;
 	}
 	/**
@@ -305,7 +466,7 @@ class UserManager {
 	 * @return
 	 */
 	public String[] getAllOnlineUsers() {
-		return (String[]) onlineUsers.keySet().toArray();
+		return onlineUsers.keySet().toArray(new String[0]);
 	}
 	/**
 	 * 
@@ -323,32 +484,32 @@ class UserManager {
  */
 class User {
 	private final Socket socket;
-	private ObjectInputStream ois;
-	private ObjectOutputStream oos;
+	private JSONInputStream jis;
+	private JSONOutputStream jos;
 	private final Date logonTime;
 	
 	public User(Socket socket) {
 		this.socket = socket;
 		try {
-			oos = new ObjectOutputStream(socket.getOutputStream());
-			ois = new ObjectInputStream(socket.getInputStream());
+			jos = new JSONOutputStream(socket.getOutputStream());
+			jis = new JSONInputStream(socket.getInputStream());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		logonTime = new Date();
 	}
 	
-	public User(Socket socket,ObjectInputStream ois,ObjectOutputStream oos) {
+	public User(Socket socket,JSONInputStream jis,JSONOutputStream jos) {
 		this.socket = socket;
-		this.ois = ois;
-		this.oos = oos;
+		this.jis = jis;
+		this.jos = jos;
 		logonTime = new Date();
 	}
 
-	public User(Socket socket, ObjectInputStream ois, ObjectOutputStream oos, Date logonTime) {
+	public User(Socket socket, JSONInputStream jis,JSONOutputStream jos, Date logonTime) {
 		this.socket = socket;
-		this.ois = ois;
-		this.oos = oos;
+		this.jis = jis;
+		this.jos = jos;
 		this.logonTime = logonTime;
 	}
 
@@ -356,12 +517,12 @@ class User {
 		return socket;
 	}
 
-	public ObjectInputStream getOis() {
-		return ois;
+	public JSONInputStream getJis() {
+		return jis;
 	}
 
-	public ObjectOutputStream getOos() {
-		return oos;
+	public JSONOutputStream getJos() {
+		return jos;
 	}
 
 	public Date getLogonTime() {

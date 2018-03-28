@@ -17,6 +17,7 @@ public class JSONOutputStream {
 	}
 	
 	public void writeJSONObject(JSONObject jsonObject) throws IOException {
+		System.out.println("Sending JSON Object:"+jsonObject.toString());
 		outputStream.write(jsonObject.toString().getBytes());
 	}
 	

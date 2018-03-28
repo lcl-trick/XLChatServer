@@ -8,10 +8,6 @@ public class XCUserStateMessage extends XCMessage {
 	public boolean isUserOnline() {
 		return userOnline;
 	}
-	
-	public boolean isUserOffline() {
-		return !isUserOnline();
-	}
 
 	public void setUserOnline(boolean userOnline) {
 		this.userOnline = userOnline;

@@ -31,16 +31,26 @@ public abstract class XCMessage implements Serializable {
 		return getDstUser().equals("");
 	}
 	
-	public static boolean toJSONObject(XCMessage message, JSONObject jsonObject) {
+	public static XCMessage fromJSONObject(JSONObject jsonObject, Class<? extends XCMessage> classObj) {
 		try {
-			Field[] fields = message.getClass().getDeclaredFields();
-			for (Field field : fields) {
+			XCMessage message = classObj.newInstance();
+			Field[] superFields = classObj.getSuperclass().getDeclaredFields();
+			for (Field field : superFields) {
+				if (field.getName().equals("serialVersionUID")) {
+					continue;
+				}
 				field.set(message, jsonObject.get(field.getName()));
 			}
-			return true;
-		} catch (SecurityException | IllegalArgumentException | IllegalAccessException | JSONException e) {
-			e.printStackTrace();
-			return false;
+			Field[] fields = classObj.getDeclaredFields();
+			for (Field field : fields) {
+				if (field.getName().equals("serialVersionUID")) {
+					continue;
+				}
+				field.set(message, jsonObject.get(field.getName()));
+			}
+			return message;
+		} catch (InstantiationException | SecurityException | IllegalArgumentException | IllegalAccessException | JSONException e) {
+			return null;
 		}
 	}
 }

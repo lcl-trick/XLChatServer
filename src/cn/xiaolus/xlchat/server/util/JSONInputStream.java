@@ -25,13 +25,15 @@ public class JSONInputStream {
 				throw new JSONException("No JSON object found");
 			}
 		}
-		StringBuilder source = new StringBuilder();
+		StringBuilder source = new StringBuilder("{");
 		while(b != '}') {
+			b = inputStream.read();
 			if (b == -1) {
 				throw new JSONException("Invaid JSON source endding.");
 			}
-			source.append(b);
+			source.append((char)b);
 		}
+		System.out.println("Receive JSON Object:"+source);
 		JSONObject jsonObject = new JSONObject(source.toString());
 		return jsonObject;
 	}
