@@ -26,15 +26,15 @@ import javax.swing.table.DefaultTableModel;
 import org.json.JSONObject;
 
 import cn.xiaolus.xlchat.server.db.DataBaseManager;
-import cn.xiaolus.xlchat.server.util.JSONInputStream;
-import cn.xiaolus.xlchat.server.util.JSONOutputStream;
-import cn.xiaolus.xlchat.server.util.XCChatMessage;
-import cn.xiaolus.xlchat.server.util.XCMessage;
-import cn.xiaolus.xlchat.server.util.XCSigninMessage;
-import cn.xiaolus.xlchat.server.util.XCSignoutMessage;
-import cn.xiaolus.xlchat.server.util.XCSignupMessage;
-import cn.xiaolus.xlchat.server.util.XCStateMessage;
-import cn.xiaolus.xlchat.server.util.XCUserStateMessage;
+import cn.xiaolus.xlchat.util.JSONInputStream;
+import cn.xiaolus.xlchat.util.JSONOutputStream;
+import cn.xiaolus.xlchat.util.XCChatMessage;
+import cn.xiaolus.xlchat.util.XCMessage;
+import cn.xiaolus.xlchat.util.XCSigninMessage;
+import cn.xiaolus.xlchat.util.XCSignoutMessage;
+import cn.xiaolus.xlchat.util.XCSignupMessage;
+import cn.xiaolus.xlchat.util.XCStateMessage;
+import cn.xiaolus.xlchat.util.XCUserStateMessage;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;

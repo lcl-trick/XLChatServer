@@ -1,4 +1,4 @@
-package cn.xiaolus.xlchat.server.util;
+package cn.xiaolus.xlchat.util;
 
 public class XCChatMessage extends XCMessage {
 	private static final long serialVersionUID = -2208082869128050072L;

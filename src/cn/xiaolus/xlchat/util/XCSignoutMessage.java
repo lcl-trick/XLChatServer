@@ -1,4 +1,4 @@
-package cn.xiaolus.xlchat.server.util;
+package cn.xiaolus.xlchat.util;
 
 public class XCSignoutMessage extends XCMessage {
 
