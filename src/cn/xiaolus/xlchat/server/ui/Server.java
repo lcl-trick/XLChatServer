@@ -2,9 +2,10 @@ package cn.xiaolus.xlchat.server.ui;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.KeyStore;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,6 +16,9 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
 import javax.swing.BoxLayout;
 import javax.swing.JTextPane;
 import javax.swing.JSplitPane;
@@ -44,8 +48,8 @@ public class Server extends JFrame {
 	/**
 	 * 
 	 */
-	private ServerSocket serverSocket;
-	private final int PORT = 9999;
+	private SSLServerSocket serverSocket;
+	private static final int PORT = 9999;
 	private final UserManager userManager = new UserManager(); 
 	private final DefaultTableModel onlineUserDtm = new DefaultTableModel(new String[]{"用户名","登录时间","IP地址","端口"},0);
 	private static final long serialVersionUID = 8482455133264907039L;
@@ -114,9 +118,23 @@ public class Server extends JFrame {
 		southPanel.add(btnStart);
 	}
 	
+	private static SSLContext initSSLContext() throws Exception {
+		FileInputStream keystorefis = new FileInputStream("XLChatKeystore.keystore");
+		char[] password = "XiaoLuKEYSTORE0129".toCharArray();
+		KeyStore ks = KeyStore.getInstance("PKCS12");
+		ks.load(keystorefis, password);
+		KeyManagerFactory factory = KeyManagerFactory.getInstance("SunX509");
+		factory.init(ks, password);
+		SSLContext context = SSLContext.getInstance("TLS");
+		context.init(factory.getKeyManagers(), null, null);
+		return context;
+	}
+	
 	public void startServer() {
 		try {
-			serverSocket = new ServerSocket(PORT);
+			SSLContext context = Server.initSSLContext();
+			serverSocket = (SSLServerSocket)context.getServerSocketFactory().createServerSocket(PORT);
+			serverSocket.setEnabledCipherSuites(serverSocket.getSupportedCipherSuites());
 			EventQueue.invokeLater(()->{
 				String oriText = textPaneMsgRecord.getText();
 				textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("服务器启动").toString());
@@ -125,7 +143,7 @@ public class Server extends JFrame {
 				Socket socket = serverSocket.accept();
 				new Thread(new UserHandler(socket)).start();
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
