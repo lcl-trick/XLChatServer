@@ -3,7 +3,6 @@ package cn.xiaolus.xlchat.util;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 public abstract class XCMessage implements Serializable {
@@ -33,7 +32,7 @@ public abstract class XCMessage implements Serializable {
 	
 	public static XCMessage fromJSONObject(JSONObject jsonObject, Class<? extends XCMessage> classObj) {
 		try {
-			XCMessage message = classObj.newInstance();
+			XCMessage message = classObj.getDeclaredConstructor().newInstance();
 			Field[] superFields = classObj.getSuperclass().getDeclaredFields();
 			for (Field field : superFields) {
 				if (field.getName().equals("serialVersionUID")) {
@@ -49,7 +48,7 @@ public abstract class XCMessage implements Serializable {
 				field.set(message, jsonObject.get(field.getName()));
 			}
 			return message;
-		} catch (InstantiationException | SecurityException | IllegalArgumentException | IllegalAccessException | JSONException e) {
+		} catch (Exception e) {
 			return null;
 		}
 	}

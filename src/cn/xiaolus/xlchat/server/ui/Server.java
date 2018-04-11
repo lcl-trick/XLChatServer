@@ -314,7 +314,7 @@ public class Server extends JFrame {
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
 			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-					"jdbc:mysql://db.cstacauc.cn?useSSL=true",
+					"jdbc:mysql://db.xiaolus.cn",
 					"xlcuser", "xlcuser".toCharArray());
 			try {
 				dbManager.connect();

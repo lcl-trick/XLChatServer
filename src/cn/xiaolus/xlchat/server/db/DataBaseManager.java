@@ -15,6 +15,29 @@ public class DataBaseManager extends DataBaseConnector {
 		super(driver, host, user, password);
 	}
 	
+	/**
+	 * 初始化数据库表
+	 * @return 初始化是否成功
+	 */
+	public boolean initDatabase() {
+		try {
+			Connection connection = getConnection();
+			PreparedStatement sql;
+			sql = connection.prepareStatement("CREATE OR REPLACE TABLE `xlchat`.`users` (`id` int(9) NOT NULL AUTO_INCREMENT,`user` varchar(120) NOT NULL,`name` varchar(120) NOT NULL,`passwdhashb64` varchar(120) NOT NULL,`salt` varchar(120) NOT NULL,PRIMARY KEY (`id`, `user`));");
+			return sql.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+	}
+	
+	/**
+	 * 登录聊天器的方法
+	 * @param user 用户名
+	 * @param password 密码
+	 * @return 是否登陆成功
+	 */
 	public boolean signin(String user, String password) {
 		try {
 			Connection connection = getConnection();
@@ -23,13 +46,10 @@ public class DataBaseManager extends DataBaseConnector {
 			ResultSet result = sql.executeQuery();
 			while(result.next()) {
 				String passwordhashb64 = result.getString(4);
-//				System.out.println("passwordhashb64:"+passwordhashb64);
 				String salt = result.getString(5);
-//				System.out.println("salt:"+salt);
 				MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
 				byte[] passwordhashinput = messageDigest.digest(new StringBuilder(password).append(salt).toString().getBytes());
 				String passwordhashb64input = Base64.getEncoder().encodeToString(passwordhashinput);
-//				System.out.println("passwordhashb64input:"+passwordhashb64input);
 				if (passwordhashb64.equals(passwordhashb64input)) {
 					return true;
 				} else {
@@ -37,21 +57,25 @@ public class DataBaseManager extends DataBaseConnector {
 				}
 			}
 			return false;
-		} catch (SQLException | NoSuchAlgorithmException e) {
+		} catch (NoSuchAlgorithmException | SQLException e) {
 			e.printStackTrace();
 			return false;
 		}
 	}
-	
+	/**
+	 * 注册聊天用户的方法
+	 * @param user 用户名
+	 * @param name 用户昵称
+	 * @param password 密码
+	 * @return 注册是否成功
+	 */
 	public boolean signup(String user, String name, String password) {
 		try {
 			MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
 			SecureRandom secureRandom = new SecureRandom();
 			String salt = Long.toHexString(secureRandom.nextLong());
-//			System.out.println("salt:"+salt);
 			byte[] passwordhash = messageDigest.digest(new StringBuilder(password).append(salt).toString().getBytes());
 			String passwordhashb64 = Base64.getEncoder().encodeToString(passwordhash);
-//			System.out.println("passwordhashb64:"+passwordhashb64);
 			Connection connection = getConnection();
 			PreparedStatement sql = connection.prepareStatement("insert into xlchat.users (user,name,passwdhashb64,salt) values(?,?,?,?)");
 			sql.setString(1, user);
