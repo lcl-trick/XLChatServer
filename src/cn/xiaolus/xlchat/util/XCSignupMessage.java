@@ -1,13 +1,18 @@
 package cn.xiaolus.xlchat.util;
 
+/**
+ * 功能：
+ * 注册消息
+ * 
+ * @author 小路
+ *
+ */
 public class XCSignupMessage extends XCMessage {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 8429862001867074251L;
-	
+//	用户昵称
 	protected String name;
+//	用户密码
 	protected String password;
 	
 	public String getName() {

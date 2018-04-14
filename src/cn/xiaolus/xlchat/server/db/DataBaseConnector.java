@@ -9,21 +9,28 @@ import java.sql.SQLException;;
  * 登录到主数据库
  * 
  * 修订版本：
- * 2018-01-04 更改mysql驱动版本
+ * 2018-01-04 更改MySQL驱动版本
  * 2018-01-01 数据库增加SSL方式登录
  * 2017-12-30 更改数据库密码
  * 2017-12-17 首次编写
  * 
- * @author 路伟饶
+ * @author 小路
  * 
  */
+
 public class DataBaseConnector {
 	
+//	数据库驱动名称
 	private String dbDriverName;
+//	数据库主机名
 	private String dbHost;
+//	数据库用户名
 	private String dbUser;
+//	数据库密码
 	private char[] dbPassword;
+//	是否已经连接
 	private boolean isConnected;
+//	数据库连接对象
 	private Connection dbConnection;
 	
 	/**
@@ -40,6 +47,7 @@ public class DataBaseConnector {
 		dbUser = user;
 		dbPassword = password;
 	}
+	
 	/**
 	 * 连接到指定的数据库
 	 * @return 一个数据库连接
@@ -60,6 +68,7 @@ public class DataBaseConnector {
 			return dbConnection;
 		}
 	}
+	
 	/**
 	 * 获得到数据库的连接
 	 * @return 数据库连接，如果尚未连接则返回空
@@ -72,6 +81,7 @@ public class DataBaseConnector {
 			return null;
 		}
 	}
+	
 	/**
 	 * 关闭数据库连接
 	 * @throws SQLException 在关闭数据库连接时出错
