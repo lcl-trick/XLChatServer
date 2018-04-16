@@ -55,7 +55,7 @@ public class Server extends JFrame {
 //	SSLServerSocket是用于支持安全通信的服务器Socket
 	private SSLServerSocket serverSocket;
 //	默认端口为9999端口
-	private static final int PORT = 9999;
+	private static final int PORT = 8888;
 //	用户管理对象
 	private final UserManager userManager = new UserManager();
 //	表模型对象
@@ -230,6 +230,9 @@ public class Server extends JFrame {
 					if ((msg = XCMessage.fromJSONObject(receive, XCChatMessage.class) )!=null) {
 //						处理聊天消息
 						processChatMessage((XCChatMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCStateMessage.class) )!=null) {
+//						处理状态消息
+						processStateMessage((XCStateMessage)msg);
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
 //						处理注册消息
 						processSignupMessage((XCSignupMessage)msg);
@@ -326,7 +329,7 @@ public class Server extends JFrame {
 				if (dbManager.signin(srcUser, password)) {
 //					数据库回应称登录成功
 //					设置返回消息为成功状态
-					message.setStatus(0);
+					message.setStatus(XCStateMessage.SUCCESS);
 					message.setError("");
 //					创建用户登录消息
 					XCUserStateMessage onlineMessage = new XCUserStateMessage();
@@ -345,12 +348,12 @@ public class Server extends JFrame {
 					flag = 1;
 				} else {
 //					数据库回应称登录失败
-					message.setStatus(-1);
+					message.setStatus(XCStateMessage.FAILED);
 					message.setError("用户名或密码错误，或数据库错误");
 				}
 			} catch (ClassNotFoundException | SQLException e) {
 //				出现异常，登录失败
-				message.setStatus(-1);
+				message.setStatus(XCStateMessage.FAILED);
 				message.setError(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
@@ -388,7 +391,7 @@ public class Server extends JFrame {
 //			判断用户是否在线呀，不在线怎么能注销呢？
 			if (userManager.isUserOnline(srcUser)) {
 //				在线的情况下就可以注销啦
-				message.setStatus(0);
+				message.setStatus(XCStateMessage.SUCCESS);
 				message.setError("");
 //				注销状态消息
 				XCUserStateMessage offlineMessage = new XCUserStateMessage();
@@ -405,7 +408,7 @@ public class Server extends JFrame {
 				userManager.removeUser(onlineUserDtm, srcUser);
 			} else {
 //				没登录当然是不可以注销哒
-				message.setStatus(-1);
+				message.setStatus(XCStateMessage.FAILED);
 				message.setError("登录状态异常：未登录用户不可以注销");
 			}
 //			两种情况都要回复一下客户端的，创建JSON对象来发送
@@ -445,7 +448,7 @@ public class Server extends JFrame {
 //				执行数据库注册操作，并获得结果
 				if (dbManager.signup(srcUser, name, password)) {
 //					数据库回应称注册成功
-					message.setStatus(0);
+					message.setStatus(XCStateMessage.SUCCESS);
 					message.setError("");
 //					提交EDT线程输出注册成功
 					EventQueue.invokeLater(()->{
@@ -454,17 +457,41 @@ public class Server extends JFrame {
 					});
 				} else {
 //					数据库回应称注册失败
-					message.setStatus(-1);
+					message.setStatus(XCStateMessage.FAILED);
 					message.setError("无法注册");
 				}
 			} catch (ClassNotFoundException | SQLException e) {
 //				因为服务器异常导致注册失败
-				message.setStatus(-1);
+				message.setStatus(XCStateMessage.FAILED);
 				message.setError("无法注册");
 				e.printStackTrace();
 			}
 //			要回复一下客户端的，创建JSON对象来发送
 			JSONObject send = new JSONObject(message);
+			synchronized (jos) {
+				try {
+//					向JSON输出流写入JSON对象
+					jos.writeJSONObject(send);
+					jos.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private void processStateMessage(XCStateMessage msg) {
+			String srcUser = msg.getSrcUser();
+			if(msg.getStatus()==XCStateMessage.SUCCESS || msg.getStatus()==XCStateMessage.FAILED) {
+				return;
+			} else if (msg.getStatus()==XCStateMessage.ACCEPT_TRA) {
+				String srcHost = userManager.getUserSocket(srcUser).getInetAddress().getHostAddress();
+				int port = Integer.valueOf(msg.getError());
+				msg.setError(new StringBuilder(srcHost).append(":").append(port).toString());
+			} else if (msg.getStatus()==XCStateMessage.REJECT_TRA || msg.getStatus()==XCStateMessage.REQ_TRA) {
+				msg.setError("TransferByServer");
+			}
+//			两种情况都要回复一下客户端的，创建JSON对象来发送
+			JSONObject send = new JSONObject(msg);
 			synchronized (jos) {
 				try {
 //					向JSON输出流写入JSON对象
