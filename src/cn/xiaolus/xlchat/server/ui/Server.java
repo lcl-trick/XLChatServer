@@ -33,6 +33,7 @@ import cn.xiaolus.xlchat.server.db.DataBaseManager;
 import cn.xiaolus.xlchat.util.JSONInputStream;
 import cn.xiaolus.xlchat.util.JSONOutputStream;
 import cn.xiaolus.xlchat.util.XCChatMessage;
+import cn.xiaolus.xlchat.util.XCFileTransferMessage;
 import cn.xiaolus.xlchat.util.XCMessage;
 import cn.xiaolus.xlchat.util.XCSigninMessage;
 import cn.xiaolus.xlchat.util.XCSignoutMessage;
@@ -137,7 +138,7 @@ public class Server extends JFrame {
 	 * @return
 	 * @throws Exception
 	 */
-	private static SSLContext initSSLContext() throws Exception {
+	private SSLContext initSSLServerContext() throws Exception {
 //		打开密钥库文件
 		FileInputStream keystorefis = new FileInputStream("XLChatKeystore.keystore");
 //		密钥库的密码
@@ -163,7 +164,7 @@ public class Server extends JFrame {
 	public void startServer() {
 		try {
 //			初始化SSL会话
-			SSLContext context = Server.initSSLContext();
+			SSLContext context = initSSLServerContext();
 //			从SSL会话中获得支持安全通信的服务器Socket
 			serverSocket = (SSLServerSocket)context.getServerSocketFactory().createServerSocket(PORT);
 //			设置启用的算法套件为所有支持的算法套件
@@ -178,7 +179,9 @@ public class Server extends JFrame {
 //				接受新连接并获得Socket
 				Socket socket = serverSocket.accept();
 //				创建新线程为该客户端服务，同时服务器监听线程华丽转身等待下一个客户端
-				new Thread(new UserHandler(socket)).start();
+				Thread serveThread = new Thread(new UserHandler(socket));
+				serveThread.setDaemon(true);
+				serveThread.start();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -233,6 +236,9 @@ public class Server extends JFrame {
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCStateMessage.class) )!=null) {
 //						处理状态消息
 						processStateMessage((XCStateMessage)msg);
+					} else if ((msg = XCMessage.fromJSONObject(receive, XCFileTransferMessage.class) )!=null) {
+//						处理文件传输消息
+						processFileTransferMessage((XCFileTransferMessage)msg);
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
 //						处理注册消息
 						processSignupMessage((XCSignupMessage)msg);
@@ -480,15 +486,22 @@ public class Server extends JFrame {
 		}
 		
 		private void processStateMessage(XCStateMessage msg) {
+			JSONObject send = new JSONObject(msg);
+			synchronized (jos) {
+				try {
+//					向JSON输出流写入JSON对象
+					jos.writeJSONObject(send);
+					jos.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private void processFileTransferMessage(XCFileTransferMessage msg) {
 			String srcUser = msg.getSrcUser();
-			if(msg.getStatus()==XCStateMessage.SUCCESS || msg.getStatus()==XCStateMessage.FAILED) {
-				return;
-			} else if (msg.getStatus()==XCStateMessage.ACCEPT_TRA) {
-				String srcHost = userManager.getUserSocket(srcUser).getInetAddress().getHostAddress();
-				int port = Integer.valueOf(msg.getError());
-				msg.setError(new StringBuilder(srcHost).append(":").append(port).toString());
-			} else if (msg.getStatus()==XCStateMessage.REJECT_TRA || msg.getStatus()==XCStateMessage.REQ_TRA) {
-				msg.setError("TransferByServer");
+			if (msg.getStatus()==XCFileTransferMessage.ACCEPT_TRA) {
+				msg.setHost(userManager.getUserSocket(srcUser).getInetAddress().getHostAddress());
 			}
 //			两种情况都要回复一下客户端的，创建JSON对象来发送
 			JSONObject send = new JSONObject(msg);

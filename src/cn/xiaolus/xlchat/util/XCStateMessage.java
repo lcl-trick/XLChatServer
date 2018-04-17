@@ -10,7 +10,7 @@ package cn.xiaolus.xlchat.util;
 public class XCStateMessage extends XCMessage {
 	
 	private static final long serialVersionUID = 2420995190931098975L;
-	public static final int SUCCESS = 0, FAILED = -1, REQ_TRA = 1, ACCEPT_TRA = 2, REJECT_TRA = -2;
+	public static final int SUCCESS = 0, FAILED = -1;
 //	状态类型
 	protected int status;
 //	错误消息
