@@ -233,9 +233,6 @@ public class Server extends JFrame {
 					if ((msg = XCMessage.fromJSONObject(receive, XCChatMessage.class) )!=null) {
 //						处理聊天消息
 						processChatMessage((XCChatMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCStateMessage.class) )!=null) {
-//						处理状态消息
-						processStateMessage((XCStateMessage)msg);
 					} else if ((msg = XCMessage.fromJSONObject(receive, XCFileTransferMessage.class) )!=null) {
 //						处理文件传输消息
 						processFileTransferMessage((XCFileTransferMessage)msg);
@@ -485,24 +482,13 @@ public class Server extends JFrame {
 			}
 		}
 		
-		private void processStateMessage(XCStateMessage msg) {
-			JSONObject send = new JSONObject(msg);
-			synchronized (jos) {
-				try {
-//					向JSON输出流写入JSON对象
-					jos.writeJSONObject(send);
-					jos.flush();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
 		private void processFileTransferMessage(XCFileTransferMessage msg) {
 			String srcUser = msg.getSrcUser();
+			String dstUser = msg.getDstUser();
 			if (msg.getStatus()==XCFileTransferMessage.ACCEPT_TRA) {
 				msg.setHost(userManager.getUserSocket(srcUser).getInetAddress().getHostAddress());
 			}
+			JSONOutputStream jos = userManager.getUserJSONOutputStream(dstUser);
 //			两种情况都要回复一下客户端的，创建JSON对象来发送
 			JSONObject send = new JSONObject(msg);
 			synchronized (jos) {
