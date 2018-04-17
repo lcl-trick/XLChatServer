@@ -322,8 +322,8 @@ public class Server extends JFrame {
 //			创建数据库管理器
 			@SuppressWarnings(value = { "需从配置文件中读取！" })
 			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-					"jdbc:mysql://db.xiaolus.cn",
-					"xlcuser", "xlcuser".toCharArray());
+					"jdbc:mysql://localhost",
+					"xluser", "xluser".toCharArray());
 //			创建服务器登录状态回复消息
 			XCStateMessage message = new XCStateMessage();
 			message.setSrcUser("");
@@ -446,8 +446,8 @@ public class Server extends JFrame {
 //			创建数据库管理器
 			@SuppressWarnings(value = { "需从配置文件中读取！" })
 			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-					"jdbc:mysql://db.xiaolus.cn",
-					"xlcuser", "xlcuser".toCharArray());
+					"jdbc:mysql://localhost",
+					"xluser", "xluser".toCharArray());
 			try {
 //				连接到数据库
 				dbManager.connect();

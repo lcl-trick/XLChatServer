@@ -56,8 +56,8 @@ public abstract class XCMessage implements Serializable {
 			Field[] superFields = classObj.getSuperclass().getDeclaredFields();
 //			遍历父类成员变量
 			for (Field field : superFields) {
-//				跳过序列化ID
-				if (field.getName().equals("serialVersionUID")) {
+//				跳过序列化ID和静态常量
+				if (field.getName().equals("serialVersionUID") || field.getName().equals(field.getName().toUpperCase())) {
 					continue;
 				}
 //				设置所有其他的成员变量为JSON的键
@@ -67,8 +67,8 @@ public abstract class XCMessage implements Serializable {
 			Field[] fields = classObj.getDeclaredFields();
 //			遍历当前类的成员变量
 			for (Field field : fields) {
-//				跳过序列化ID
-				if (field.getName().equals("serialVersionUID")) {
+//				跳过序列化ID和静态常量
+				if (field.getName().equals("serialVersionUID") || field.getName().equals(field.getName().toUpperCase())) {
 					continue;
 				}
 //				设置所有其他的成员变量为JSON的键
