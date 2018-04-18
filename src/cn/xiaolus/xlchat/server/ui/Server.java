@@ -4,12 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import javax.swing.JFrame;
@@ -57,6 +59,7 @@ public class Server extends JFrame {
 	private SSLServerSocket serverSocket;
 //	默认端口为9999端口
 	private static final int PORT = 8888;
+	private Properties properties = new Properties();
 //	用户管理对象
 	private final UserManager userManager = new UserManager();
 //	表模型对象
@@ -131,6 +134,16 @@ public class Server extends JFrame {
 			}
 		});
 		southPanel.add(btnStart);
+		loadProperties();
+	}
+	
+	private void loadProperties() {
+		try {
+			InputStream inputStream = getClass().getResourceAsStream("/config/config.properties");
+			properties.load(inputStream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -142,8 +155,7 @@ public class Server extends JFrame {
 //		打开密钥库文件
 		FileInputStream keystorefis = new FileInputStream("XLChatKeystore.keystore");
 //		密钥库的密码
-		@SuppressWarnings(value = { "需从配置文件中读取！" })
-		char[] password = "XiaoLuKEYSTORE0129".toCharArray();
+		char[] password = properties.getProperty("KeyStorePassword").toCharArray();
 //		创建密钥库对象并加载
 		KeyStore ks = KeyStore.getInstance("PKCS12");
 		ks.load(keystorefis, password);
@@ -317,10 +329,10 @@ public class Server extends JFrame {
 			String srcUser = msg.getSrcUser();
 			String password = msg.getPassword();
 //			创建数据库管理器
-			@SuppressWarnings(value = { "需从配置文件中读取！" })
-			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-					"jdbc:mysql://localhost",
-					"xluser", "xluser".toCharArray());
+			DataBaseManager dbManager = new DataBaseManager(properties.getProperty("DatabaseDriver"),
+					properties.getProperty("DatabaseHost"),
+					properties.getProperty("DatabaseUsername"),
+					properties.getProperty("DatabasePassword").toCharArray());
 //			创建服务器登录状态回复消息
 			XCStateMessage message = new XCStateMessage();
 			message.setSrcUser("");
@@ -441,10 +453,10 @@ public class Server extends JFrame {
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
 //			创建数据库管理器
-			@SuppressWarnings(value = { "需从配置文件中读取！" })
-			DataBaseManager dbManager = new DataBaseManager("com.mysql.jdbc.Driver",
-					"jdbc:mysql://localhost",
-					"xluser", "xluser".toCharArray());
+			DataBaseManager dbManager = new DataBaseManager(properties.getProperty("DatabaseDriver"),
+					properties.getProperty("DatabaseHost"),
+					properties.getProperty("DatabaseUsername"),
+					properties.getProperty("DatabasePassword").toCharArray());
 			try {
 //				连接到数据库
 				dbManager.connect();
