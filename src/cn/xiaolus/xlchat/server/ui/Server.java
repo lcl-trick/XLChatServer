@@ -1,19 +1,5 @@
 package cn.xiaolus.xlchat.server.ui;
 
-import java.awt.BorderLayout;
-import java.awt.EventQueue;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.security.KeyStore;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -28,6 +14,21 @@ import javax.swing.JTable;
 import javax.swing.JButton;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
+import java.awt.BorderLayout;
+import java.awt.EventQueue;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.security.KeyStore;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 import org.json.JSONObject;
 
@@ -43,9 +44,6 @@ import cn.xiaolus.xlchat.util.XCSignupMessage;
 import cn.xiaolus.xlchat.util.XCStateMessage;
 import cn.xiaolus.xlchat.util.XCUserStateMessage;
 
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-
 /**
  * 功能：
  * 服务器界面类，继承自JFrame类
@@ -55,16 +53,18 @@ import java.awt.event.ActionEvent;
  */
 public class Server extends JFrame {
 	
+	private static final long serialVersionUID = 8482455133264907039L;
+	
 //	SSLServerSocket是用于支持安全通信的服务器Socket
 	private SSLServerSocket serverSocket;
-//	默认端口为9999端口
-	private static final int PORT = 8888;
+//	监听的端口
+	private static int PORT;
+//	配置文件
 	private Properties properties = new Properties();
 //	用户管理对象
 	private final UserManager userManager = new UserManager();
 //	表模型对象
 	private final DefaultTableModel onlineUserDtm = new DefaultTableModel(new String[]{"用户名","登录时间","IP地址","端口"},0);
-	private static final long serialVersionUID = 8482455133264907039L;
 //	主页面Panel，界面元素
 	private JPanel contentPane;
 //	在线用户列表，界面元素
@@ -135,11 +135,17 @@ public class Server extends JFrame {
 		});
 		southPanel.add(btnStart);
 		loadProperties();
+		Server.PORT = Integer.valueOf(properties.getProperty("Listen"));
 	}
 	
+	/**
+	 * 加载配置文件
+	 */
 	private void loadProperties() {
 		try {
+//			获得资源的输入流
 			InputStream inputStream = getClass().getResourceAsStream("/config/config.properties");
+//			加载配置文件
 			properties.load(inputStream);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -147,13 +153,13 @@ public class Server extends JFrame {
 	}
 	
 	/**
-	 * 初始化SSL会话对象
-	 * @return
+	 * 初始化服务器端SSL会话对象
+	 * @return 服务器端SSL会话对象
 	 * @throws Exception
 	 */
 	private SSLContext initSSLServerContext() throws Exception {
 //		打开密钥库文件
-		FileInputStream keystorefis = new FileInputStream("XLChatKeystore.keystore");
+		FileInputStream keystorefis = new FileInputStream(properties.getProperty("KeyStoreFile"));
 //		密钥库的密码
 		char[] password = properties.getProperty("KeyStorePassword").toCharArray();
 //		创建密钥库对象并加载
@@ -231,9 +237,7 @@ public class Server extends JFrame {
 				e.printStackTrace();
 			}
 		}
-/**
- * 		
- */
+		
 		@Override
 		public void run() {
 			try {
@@ -495,14 +499,16 @@ public class Server extends JFrame {
 				}
 			}
 		}
-	/**
-	 * 	
-	 * @param msg
-	 */
+		
+		/**
+		 * 处理文件传输消息
+		 * @param msg 文件传输消息对象
+		 */
 		private void processFileTransferMessage(XCFileTransferMessage msg) {
 			String srcUser = msg.getSrcUser();
 			String dstUser = msg.getDstUser();
 			if (msg.getStatus()==XCFileTransferMessage.ACCEPT_TRA) {
+//				接收到用户接收文件消息，则添加接收方的IP地址到消息中
 				msg.setHost(userManager.getUserSocket(srcUser).getInetAddress().getHostAddress());
 			}
 			JSONOutputStream jos = userManager.getUserJSONOutputStream(dstUser);
@@ -734,6 +740,7 @@ class User {
 	public User(Socket socket) {
 		this.socket = socket;
 		try {
+//			创建JSON输入输出流
 			jos = new JSONOutputStream(socket.getOutputStream());
 			jis = new JSONInputStream(socket.getInputStream());
 		} catch (IOException e) {
