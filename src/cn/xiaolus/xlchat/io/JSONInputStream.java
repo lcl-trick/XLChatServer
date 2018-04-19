@@ -1,4 +1,4 @@
-package cn.xiaolus.xlchat.util;
+package cn.xiaolus.xlchat.io;
 
 import java.io.IOException;
 import java.io.InputStream;

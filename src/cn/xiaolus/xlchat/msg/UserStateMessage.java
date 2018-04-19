@@ -1,4 +1,4 @@
-package cn.xiaolus.xlchat.util;
+package cn.xiaolus.xlchat.msg;
 
 /**
  * 功能：
@@ -7,7 +7,7 @@ package cn.xiaolus.xlchat.util;
  * @author 小路
  *
  */
-public class XCUserStateMessage extends XCMessage {
+public class UserStateMessage extends AbstractMessage {
 	private static final long serialVersionUID = 2308566134889508488L;
 //	用户是上线还是下线
 	protected boolean userOnline;

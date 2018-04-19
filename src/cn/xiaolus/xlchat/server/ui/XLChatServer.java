@@ -32,17 +32,17 @@ import java.awt.event.ActionEvent;
 
 import org.json.JSONObject;
 
+import cn.xiaolus.xlchat.io.JSONInputStream;
+import cn.xiaolus.xlchat.io.JSONOutputStream;
+import cn.xiaolus.xlchat.msg.AbstractMessage;
+import cn.xiaolus.xlchat.msg.ChatMessage;
+import cn.xiaolus.xlchat.msg.FileTransferMessage;
+import cn.xiaolus.xlchat.msg.SigninMessage;
+import cn.xiaolus.xlchat.msg.SignoutMessage;
+import cn.xiaolus.xlchat.msg.SignupMessage;
+import cn.xiaolus.xlchat.msg.StateMessage;
+import cn.xiaolus.xlchat.msg.UserStateMessage;
 import cn.xiaolus.xlchat.server.db.DataBaseManager;
-import cn.xiaolus.xlchat.util.JSONInputStream;
-import cn.xiaolus.xlchat.util.JSONOutputStream;
-import cn.xiaolus.xlchat.util.XCChatMessage;
-import cn.xiaolus.xlchat.util.XCFileTransferMessage;
-import cn.xiaolus.xlchat.util.XCMessage;
-import cn.xiaolus.xlchat.util.XCSigninMessage;
-import cn.xiaolus.xlchat.util.XCSignoutMessage;
-import cn.xiaolus.xlchat.util.XCSignupMessage;
-import cn.xiaolus.xlchat.util.XCStateMessage;
-import cn.xiaolus.xlchat.util.XCUserStateMessage;
 
 /**
  * 功能：
@@ -51,7 +51,7 @@ import cn.xiaolus.xlchat.util.XCUserStateMessage;
  * @author 小路
  *
  */
-public class Server extends JFrame {
+public class XLChatServer extends JFrame {
 	
 	private static final long serialVersionUID = 8482455133264907039L;
 	
@@ -79,7 +79,7 @@ public class Server extends JFrame {
 	public static void main(String[] args) {
 		EventQueue.invokeLater(()->{
 			try {
-				Server frame = new Server();
+				XLChatServer frame = new XLChatServer();
 				frame.setVisible(true);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -90,10 +90,10 @@ public class Server extends JFrame {
 	/**
 	 * 构造方法，创建窗体
 	 */
-	public Server() {
+	public XLChatServer() {
 		setTitle("聊天程序服务器");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 450, 300);
+		setBounds(100, 100, 600, 400);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -104,7 +104,7 @@ public class Server extends JFrame {
 		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.X_AXIS));
 		
 		JSplitPane splitPane = new JSplitPane();
-		splitPane.setResizeWeight(0.5);
+		splitPane.setResizeWeight(1.0);
 		centerPanel.add(splitPane);
 		
 		textPaneMsgRecord = new JTextPane();
@@ -122,7 +122,7 @@ public class Server extends JFrame {
 		contentPane.add(southPanel, BorderLayout.SOUTH);
 		southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.X_AXIS));
 		
-		JButton btnStart = new JButton("启动");
+		JButton btnStart = new JButton("启动服务器");
 		btnStart.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 //				点击启动时，在新线程中启动服务器。
@@ -135,7 +135,7 @@ public class Server extends JFrame {
 		});
 		southPanel.add(btnStart);
 		loadProperties();
-		Server.PORT = Integer.valueOf(properties.getProperty("Listen"));
+		XLChatServer.PORT = Integer.valueOf(properties.getProperty("Listen"));
 	}
 	
 	/**
@@ -244,26 +244,26 @@ public class Server extends JFrame {
 				while(true) {
 //					从JSON输入流中读取JSON对象
 					JSONObject receive = jis.readJSONObject();
-					XCMessage msg = null;
+					AbstractMessage msg = null;
 //					判断接收到的消息，由JSON对象反序列化为消息对象
 //					这里在反序列化的时候仅仅处理了消息对象，并没有考虑任何其他情况
 //					所以可能不是那么太好用哈
-					if ((msg = XCMessage.fromJSONObject(receive, XCChatMessage.class) )!=null) {
+					if ((msg = AbstractMessage.fromJSONObject(receive, ChatMessage.class) )!=null) {
 //						处理聊天消息
-						processChatMessage((XCChatMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCFileTransferMessage.class) )!=null) {
+						processChatMessage((ChatMessage)msg);
+					} else if ((msg = AbstractMessage.fromJSONObject(receive, FileTransferMessage.class) )!=null) {
 //						处理文件传输消息
-						processFileTransferMessage((XCFileTransferMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignupMessage.class) )!=null) {
+						processFileTransferMessage((FileTransferMessage)msg);
+					} else if ((msg = AbstractMessage.fromJSONObject(receive, SignupMessage.class) )!=null) {
 //						处理注册消息
-						processSignupMessage((XCSignupMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCSigninMessage.class) )!=null) {
+						processSignupMessage((SignupMessage)msg);
+					} else if ((msg = AbstractMessage.fromJSONObject(receive, SigninMessage.class) )!=null) {
 //						处理登录消息
-						processSigninMessage((XCSigninMessage)msg);
-					} else if ((msg = XCMessage.fromJSONObject(receive, XCSignoutMessage.class) )!=null) {
+						processSigninMessage((SigninMessage)msg);
+					} else if ((msg = AbstractMessage.fromJSONObject(receive, SignoutMessage.class) )!=null) {
 //						处理注销消息，因为注销消息未作任何扩展，所以不能放在前面判断，会误认为所有消息都是注销消息
 //						当然这里还有待改进
-						processSignoutMessage((XCSignoutMessage)msg);
+						processSignoutMessage((SignoutMessage)msg);
 					} else {
 //						如果不是任何一种消息，则提交EDT线程显示错误信息
 						EventQueue.invokeLater(()->{
@@ -290,7 +290,7 @@ public class Server extends JFrame {
 		 * 处理聊天消息
 		 * @param msg 聊天消息对象
 		 */
-		private void processChatMessage(XCChatMessage msg) {
+		private void processChatMessage(ChatMessage msg) {
 //			取得发送方和接收方，以及消息正文
 			String srcUser = msg.getSrcUser();
 			String dstUser = msg.getDstUser();
@@ -328,7 +328,7 @@ public class Server extends JFrame {
 		 * 处理登录消息
 		 * @param msg 登录消息对象
 		 */
-		private void processSigninMessage(XCSigninMessage msg) {
+		private void processSigninMessage(SigninMessage msg) {
 //			登录状态标志
 			int flag = 0;
 //			获得要登录的用户以及登录密码
@@ -340,7 +340,7 @@ public class Server extends JFrame {
 					properties.getProperty("DatabaseUsername"),
 					properties.getProperty("DatabasePassword").toCharArray());
 //			创建服务器登录状态回复消息
-			XCStateMessage message = new XCStateMessage();
+			StateMessage message = new StateMessage();
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
 			try {
@@ -350,10 +350,10 @@ public class Server extends JFrame {
 				if (dbManager.signin(srcUser, password)) {
 //					数据库回应称登录成功
 //					设置返回消息为成功状态
-					message.setStatus(XCStateMessage.SUCCESS);
+					message.setStatus(StateMessage.SUCCESS);
 					message.setError("");
 //					创建用户登录消息
-					XCUserStateMessage onlineMessage = new XCUserStateMessage();
+					UserStateMessage onlineMessage = new UserStateMessage();
 					onlineMessage.setSrcUser(srcUser);
 					onlineMessage.setUserOnline(true);
 //					将该用户登录的消息通知给所有其他客户端
@@ -369,12 +369,12 @@ public class Server extends JFrame {
 					flag = 1;
 				} else {
 //					数据库回应称登录失败
-					message.setStatus(XCStateMessage.FAILED);
+					message.setStatus(StateMessage.FAILED);
 					message.setError("用户名或密码错误，或数据库错误");
 				}
 			} catch (ClassNotFoundException | SQLException e) {
 //				出现异常，登录失败
-				message.setStatus(XCStateMessage.FAILED);
+				message.setStatus(StateMessage.FAILED);
 				message.setError(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
@@ -391,7 +391,7 @@ public class Server extends JFrame {
 			}
 //			要先向用户发送登录成功消息，再发送在线用户列表，不然会出问题的哦
 			if (flag == 1) {
-				XCUserStateMessage onlineListMessage = new XCUserStateMessage();
+				UserStateMessage onlineListMessage = new UserStateMessage();
 				onlineListMessage.setDstUser(srcUser);
 				onlineListMessage.setUserOnline(true);
 //				向该登录用户发送当前的所有在线用户
@@ -403,19 +403,19 @@ public class Server extends JFrame {
 		 * 处理注销消息
 		 * @param msg 注销消息对象
 		 */
-		private void processSignoutMessage(XCSignoutMessage msg) {
+		private void processSignoutMessage(SignoutMessage msg) {
 			String srcUser = msg.getSrcUser();
 //			创建服务器注销状态回复消息
-			XCStateMessage message = new XCStateMessage();
+			StateMessage message = new StateMessage();
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
 //			判断用户是否在线呀，不在线怎么能注销呢？
 			if (userManager.isUserOnline(srcUser)) {
 //				在线的情况下就可以注销啦
-				message.setStatus(XCStateMessage.SUCCESS);
+				message.setStatus(StateMessage.SUCCESS);
 				message.setError("");
 //				注销状态消息
-				XCUserStateMessage offlineMessage = new XCUserStateMessage();
+				UserStateMessage offlineMessage = new UserStateMessage();
 				offlineMessage.setSrcUser(srcUser);
 				offlineMessage.setUserOnline(false);
 //				同样还是通知大家这个用户已经注销啦
@@ -429,7 +429,7 @@ public class Server extends JFrame {
 				userManager.removeUser(onlineUserDtm, srcUser);
 			} else {
 //				没登录当然是不可以注销哒
-				message.setStatus(XCStateMessage.FAILED);
+				message.setStatus(StateMessage.FAILED);
 				message.setError("登录状态异常：未登录用户不可以注销");
 			}
 //			两种情况都要回复一下客户端的，创建JSON对象来发送
@@ -449,13 +449,13 @@ public class Server extends JFrame {
 		 * 处理注册消息
 		 * @param msg 注册消息对象
 		 */
-		private void processSignupMessage(XCSignupMessage msg) {
+		private void processSignupMessage(SignupMessage msg) {
 //			读取消息内容
 			String srcUser = msg.getSrcUser();
 			String name = msg.getName();
 			String password = msg.getPassword();
 //			创建服务器注册状态回复消息
-			XCStateMessage message = new XCStateMessage();
+			StateMessage message = new StateMessage();
 			message.setSrcUser("");
 			message.setDstUser(srcUser);
 //			创建数据库管理器
@@ -469,7 +469,7 @@ public class Server extends JFrame {
 //				执行数据库注册操作，并获得结果
 				if (dbManager.signup(srcUser, name, password)) {
 //					数据库回应称注册成功
-					message.setStatus(XCStateMessage.SUCCESS);
+					message.setStatus(StateMessage.SUCCESS);
 					message.setError("");
 //					提交EDT线程输出注册成功
 					EventQueue.invokeLater(()->{
@@ -478,12 +478,12 @@ public class Server extends JFrame {
 					});
 				} else {
 //					数据库回应称注册失败
-					message.setStatus(XCStateMessage.FAILED);
+					message.setStatus(StateMessage.FAILED);
 					message.setError("无法注册");
 				}
 			} catch (ClassNotFoundException | SQLException e) {
 //				因为服务器异常导致注册失败
-				message.setStatus(XCStateMessage.FAILED);
+				message.setStatus(StateMessage.FAILED);
 				message.setError("无法注册");
 				e.printStackTrace();
 			}
@@ -504,10 +504,10 @@ public class Server extends JFrame {
 		 * 处理文件传输消息
 		 * @param msg 文件传输消息对象
 		 */
-		private void processFileTransferMessage(XCFileTransferMessage msg) {
+		private void processFileTransferMessage(FileTransferMessage msg) {
 			String srcUser = msg.getSrcUser();
 			String dstUser = msg.getDstUser();
-			if (msg.getStatus()==XCFileTransferMessage.ACCEPT_TRA) {
+			if (msg.getStatus()==FileTransferMessage.ACCEPT) {
 //				接收到用户接收文件消息，则添加接收方的IP地址到消息中
 				msg.setHost(userManager.getUserSocket(srcUser).getInetAddress().getHostAddress());
 			}
@@ -529,7 +529,7 @@ public class Server extends JFrame {
 		 * 发送在线用户列表
 		 * @param onlineListMessage 在线用户列表消息对象
 		 */
-		private void sendOnlineUserList(XCUserStateMessage onlineListMessage) {
+		private void sendOnlineUserList(UserStateMessage onlineListMessage) {
 //			从用户管理器中获得所有在线用户
 			String[] users = userManager.getAllOnlineUsers();
 //			遍历在线用户数组
@@ -553,7 +553,7 @@ public class Server extends JFrame {
 		 * 转发消息给其他所有在线用户
 		 * @param msg 待转发的消息对象
 		 */
-		private void transferMsgToOtherUsers(XCMessage msg) {
+		private void transferMsgToOtherUsers(AbstractMessage msg) {
 //			获得所有在线用户
 			String [] users = userManager.getAllOnlineUsers();
 //			遍历在线用户数组

@@ -1,4 +1,4 @@
-package cn.xiaolus.xlchat.util;
+package cn.xiaolus.xlchat.msg;
 
 /**
  * 功能：
@@ -7,7 +7,7 @@ package cn.xiaolus.xlchat.util;
  * @author 小路
  *
  */
-public class XCSignoutMessage extends XCMessage {
+public class SignoutMessage extends AbstractMessage {
 
 	private static final long serialVersionUID = -4290233543928590957L;
 	

@@ -1,16 +1,26 @@
-package cn.xiaolus.xlchat.util;
+package cn.xiaolus.xlchat.msg;
 
-public class XCFileTransferMessage extends XCMessage {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 9152074832484490408L;
+/**
+ * 功能：
+ * 文件传输消息
+ * 
+ * @author 小路
+ *
+ */
+public class FileTransferMessage extends AbstractMessage {
 	
-	public static final int REQ_TRA = 1, ACCEPT_TRA = 2, REJECT_TRA = -2;
+	private static final long serialVersionUID = 9152074832484490408L;
+//	消息类型：文件请求=1、接受文件=2、拒绝文件=-2
+	public static final int REQUEST = 1, ACCEPT = 2, REJECT = -2;
+//	消息类型码
 	protected int status;
+//	文件名称
 	protected String fileName;
+//	文件大小
 	protected double fileSize;
+//	接收方主机名
 	protected String host;
+//	接收方端口
 	protected int port;
 	
 	public int getStatus() {
