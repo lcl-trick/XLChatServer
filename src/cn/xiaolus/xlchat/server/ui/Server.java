@@ -231,7 +231,9 @@ public class Server extends JFrame {
 				e.printStackTrace();
 			}
 		}
-		
+/**
+ * 		
+ */
 		@Override
 		public void run() {
 			try {
@@ -493,7 +495,10 @@ public class Server extends JFrame {
 				}
 			}
 		}
-		
+	/**
+	 * 	
+	 * @param msg
+	 */
 		private void processFileTransferMessage(XCFileTransferMessage msg) {
 			String srcUser = msg.getSrcUser();
 			String dstUser = msg.getDstUser();
