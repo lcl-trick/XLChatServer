@@ -16,6 +16,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.FlowLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +44,9 @@ import cn.xiaolus.xlchat.msg.SignupMessage;
 import cn.xiaolus.xlchat.msg.StateMessage;
 import cn.xiaolus.xlchat.msg.UserStateMessage;
 import cn.xiaolus.xlchat.server.db.DataBaseManager;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 /**
  * 功能：
@@ -91,9 +95,64 @@ public class XLChatServer extends JFrame {
 	 * 构造方法，创建窗体
 	 */
 	public XLChatServer() {
-		setTitle("聊天程序服务器");
+		setTitle("XLChat服务器");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 600, 400);
+		
+		JMenuBar menuBar = new JMenuBar();
+		setJMenuBar(menuBar);
+		
+		JMenu mnXlchatserver = new JMenu("XLChat");
+		menuBar.add(mnXlchatserver);
+		
+		JMenuItem mntmxlchat = new JMenuItem("关于XLChat服务器");
+		mnXlchatserver.add(mntmxlchat);
+		
+		JMenuItem menuItem_8 = new JMenuItem("启动服务器");
+		mnXlchatserver.add(menuItem_8);
+		
+		JMenuItem menuItem_9 = new JMenuItem("停止服务器");
+		menuItem_9.setEnabled(false);
+		mnXlchatserver.add(menuItem_9);
+		
+		JMenuItem mntmxlchat_1 = new JMenuItem("退出XLChat服务器");
+		mnXlchatserver.add(mntmxlchat_1);
+		
+		JMenu mnNewMenu = new JMenu("用户");
+		menuBar.add(mnNewMenu);
+		
+		JMenuItem menuItem_1 = new JMenuItem("注册用户");
+		menuItem_1.setEnabled(false);
+		mnNewMenu.add(menuItem_1);
+		
+		JMenuItem menuItem_2 = new JMenuItem("修改用户密码");
+		menuItem_2.setEnabled(false);
+		mnNewMenu.add(menuItem_2);
+		
+		JMenuItem menuItem_7 = new JMenuItem("下线所有用户");
+		menuItem_7.setEnabled(false);
+		mnNewMenu.add(menuItem_7);
+		
+		JMenu menu = new JMenu("数据库");
+		menuBar.add(menu);
+		
+		JMenuItem menuItem = new JMenuItem("初始化数据库");
+		menu.add(menuItem);
+		
+		JMenuItem menuItem_6 = new JMenuItem("测试数据库");
+		menu.add(menuItem_6);
+		
+		JMenuItem menuItem_3 = new JMenuItem("清空数据库");
+		menu.add(menuItem_3);
+		
+		JMenu menu_1 = new JMenu("配置文件");
+		menuBar.add(menu_1);
+		
+		JMenuItem menuItem_4 = new JMenuItem("显示配置");
+		menu_1.add(menuItem_4);
+		
+		JMenuItem menuItem_5 = new JMenuItem("重新载入配置");
+		menu_1.add(menuItem_5);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -113,14 +172,13 @@ public class XLChatServer extends JFrame {
 		JScrollPane scrollPane_1 = new JScrollPane(textPaneMsgRecord);
 		splitPane.setLeftComponent(scrollPane_1);
 		
-		tableOnlineUsers = new JTable();
-		tableOnlineUsers.setModel(onlineUserDtm);
+		tableOnlineUsers = new JTable(onlineUserDtm);
 		JScrollPane scrollPane_2 = new JScrollPane(tableOnlineUsers);
 		splitPane.setRightComponent(scrollPane_2);
 		
 		JPanel southPanel = new JPanel();
 		contentPane.add(southPanel, BorderLayout.SOUTH);
-		southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.X_AXIS));
+		southPanel.setLayout(new FlowLayout());
 		
 		JButton btnStart = new JButton("启动服务器");
 		btnStart.addActionListener(new ActionListener() {
@@ -134,6 +192,10 @@ public class XLChatServer extends JFrame {
 			}
 		});
 		southPanel.add(btnStart);
+		
+		JButton button = new JButton("停止服务器");
+		button.setEnabled(false);
+		southPanel.add(button);
 		loadProperties();
 		XLChatServer.PORT = Integer.valueOf(properties.getProperty("Listen"));
 	}

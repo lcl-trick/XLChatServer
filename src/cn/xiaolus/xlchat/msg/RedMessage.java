@@ -14,7 +14,7 @@ public class RedMessage extends AbstractMessage {
 //	红包总个数
 	protected int number;
 //	消息状态码：发红包，接收红包，返回红包金额，红包已领完，红包超时未领取
-	public static int SEND = 100, RECEIVE = 90, REPLY = 80, RUNOUT = -90, TIMEOUT = -100;
+	public static int SEND = 100, RECEIVE = 90, REPLY = 80, RUNOUT = -90;
 //	消息状态码
 	protected int status;
 //	红包有效期为一天
