@@ -47,6 +47,7 @@ import cn.xiaolus.xlchat.server.db.DataBaseManager;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 
 /**
  * 功能：
@@ -74,7 +75,14 @@ public class XLChatServer extends JFrame {
 //	在线用户列表，界面元素
 	private JTable tableOnlineUsers;
 //	消息记录区域，界面元素
-	private JTextPane textPaneMsgRecord;
+	private JTextPane textPaneLog;
+	private JButton btnStart;
+	private JButton btnStop;
+	private JMenuItem mnItemStart;
+	private JMenuItem mnItemStop;
+	private JMenuItem mnItemSignup;
+	private JMenuItem mnItemChPassword;
+	private JMenuItem mnItemSignoutAllUsers;
 
 	/**
 	 * 启动应用程序的主方法
@@ -105,54 +113,96 @@ public class XLChatServer extends JFrame {
 		JMenu mnXlchatserver = new JMenu("XLChat");
 		menuBar.add(mnXlchatserver);
 		
-		JMenuItem mntmxlchat = new JMenuItem("关于XLChat服务器");
-		mnXlchatserver.add(mntmxlchat);
+		JMenuItem mnItemAbout = new JMenuItem("关于XLChat服务器");
+		mnItemAbout.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JOptionPane.showMessageDialog(null, "XLChat服务器\n作者：小路\n许可证：GPLv3", "关于XLChat客户端", JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		mnXlchatserver.add(mnItemAbout);
 		
-		JMenuItem menuItem_8 = new JMenuItem("启动服务器");
-		mnXlchatserver.add(menuItem_8);
+		JMenuItem mnItemExit = new JMenuItem("退出XLChat服务器");
+		mnItemExit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0);
+			}
+		});
+		mnXlchatserver.add(mnItemExit);
 		
-		JMenuItem menuItem_9 = new JMenuItem("停止服务器");
-		menuItem_9.setEnabled(false);
-		mnXlchatserver.add(menuItem_9);
+		JMenu menu_2 = new JMenu("服务器");
+		menuBar.add(menu_2);
 		
-		JMenuItem mntmxlchat_1 = new JMenuItem("退出XLChat服务器");
-		mnXlchatserver.add(mntmxlchat_1);
+		mnItemStart = new JMenuItem("启动服务器");
+		mnItemAbout.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+//				将服务器启动的按钮禁用
+				btnStart.setEnabled(false);
+				mnItemStart.setEnabled(false);
+//				启用服务器停止的按钮
+				btnStop.setEnabled(true);
+				mnItemStop.setEnabled(true);
+//				启用注册按钮
+				mnItemSignup.setEnabled(true);
+//				启用修改密码按钮
+				mnItemChPassword.setEnabled(true);
+//				启用下线用户按钮
+				mnItemSignoutAllUsers.setEnabled(true);
+//				点击启动时，在新线程中启动服务器。
+				new Thread(()->{
+					startServer();
+				}).start();
+			}
+		});
+		menu_2.add(mnItemStart);
+		
+		JMenuItem mnItemClearLog = new JMenuItem("清空日志记录");
+		mnItemClearLog.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				textPaneLog.setText("");
+			}
+		});
+		menu_2.add(mnItemClearLog);
+		
+		mnItemStop = new JMenuItem("停止服务器");
+		menu_2.add(mnItemStop);
+		mnItemStop.setEnabled(false);
 		
 		JMenu mnNewMenu = new JMenu("用户");
 		menuBar.add(mnNewMenu);
 		
-		JMenuItem menuItem_1 = new JMenuItem("注册用户");
-		menuItem_1.setEnabled(false);
-		mnNewMenu.add(menuItem_1);
+		mnItemSignup = new JMenuItem("注册用户");
+		mnItemSignup.setEnabled(false);
+		mnNewMenu.add(mnItemSignup);
 		
-		JMenuItem menuItem_2 = new JMenuItem("修改用户密码");
-		menuItem_2.setEnabled(false);
-		mnNewMenu.add(menuItem_2);
+		mnItemChPassword = new JMenuItem("修改用户密码");
+		mnItemChPassword.setEnabled(false);
+		mnNewMenu.add(mnItemChPassword);
 		
-		JMenuItem menuItem_7 = new JMenuItem("下线所有用户");
-		menuItem_7.setEnabled(false);
-		mnNewMenu.add(menuItem_7);
+		mnItemSignoutAllUsers = new JMenuItem("下线所有用户");
+		mnItemSignoutAllUsers.setEnabled(false);
+		mnNewMenu.add(mnItemSignoutAllUsers);
 		
 		JMenu menu = new JMenu("数据库");
 		menuBar.add(menu);
 		
-		JMenuItem menuItem = new JMenuItem("初始化数据库");
-		menu.add(menuItem);
+		JMenuItem mnItemTestDB = new JMenuItem("测试数据库");
+		menu.add(mnItemTestDB);
 		
-		JMenuItem menuItem_6 = new JMenuItem("测试数据库");
-		menu.add(menuItem_6);
-		
-		JMenuItem menuItem_3 = new JMenuItem("清空数据库");
-		menu.add(menuItem_3);
+		JMenuItem mnItemInitDB = new JMenuItem("初始化数据库");
+		menu.add(mnItemInitDB);
 		
 		JMenu menu_1 = new JMenu("配置文件");
 		menuBar.add(menu_1);
 		
-		JMenuItem menuItem_4 = new JMenuItem("显示配置");
-		menu_1.add(menuItem_4);
+		JMenuItem mnItemShowConfig = new JMenuItem("显示配置");
+		menu_1.add(mnItemShowConfig);
 		
-		JMenuItem menuItem_5 = new JMenuItem("重新载入配置");
-		menu_1.add(menuItem_5);
+		JMenuItem mnItemReloadConfig = new JMenuItem("重新载入配置");
+		menu_1.add(mnItemReloadConfig);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -166,10 +216,10 @@ public class XLChatServer extends JFrame {
 		splitPane.setResizeWeight(1.0);
 		centerPanel.add(splitPane);
 		
-		textPaneMsgRecord = new JTextPane();
-		textPaneMsgRecord.setEditable(false);
-		textPaneMsgRecord.setBorder(new TitledBorder(null, "日志记录", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		JScrollPane scrollPane_1 = new JScrollPane(textPaneMsgRecord);
+		textPaneLog = new JTextPane();
+		textPaneLog.setEditable(false);
+		textPaneLog.setBorder(new TitledBorder(null, "日志记录", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		JScrollPane scrollPane_1 = new JScrollPane(textPaneLog);
 		splitPane.setLeftComponent(scrollPane_1);
 		
 		tableOnlineUsers = new JTable(onlineUserDtm);
@@ -180,22 +230,33 @@ public class XLChatServer extends JFrame {
 		contentPane.add(southPanel, BorderLayout.SOUTH);
 		southPanel.setLayout(new FlowLayout());
 		
-		JButton btnStart = new JButton("启动服务器");
+		btnStart = new JButton("启动服务器");
 		btnStart.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
+//				将服务器启动的按钮禁用
+				btnStart.setEnabled(false);
+				mnItemStart.setEnabled(false);
+//				启用注册按钮
+				mnItemSignup.setEnabled(true);
+//				启用修改密码按钮
+				mnItemChPassword.setEnabled(true);
+//				启用下线用户按钮
+				mnItemSignoutAllUsers.setEnabled(true);
+//				启用服务器停止的按钮
+				btnStop.setEnabled(true);
+				mnItemStop.setEnabled(true);
 //				点击启动时，在新线程中启动服务器。
 				new Thread(()->{
 					startServer();
 				}).start();
-//				将服务器启动的按钮禁用
-				btnStart.setEnabled(false);
 			}
 		});
 		southPanel.add(btnStart);
 		
-		JButton button = new JButton("停止服务器");
-		button.setEnabled(false);
-		southPanel.add(button);
+		btnStop = new JButton("停止服务器");
+		btnStop.setEnabled(false);
+		southPanel.add(btnStop);
 		loadProperties();
 		XLChatServer.PORT = Integer.valueOf(properties.getProperty("Listen"));
 	}
@@ -251,8 +312,8 @@ public class XLChatServer extends JFrame {
 			serverSocket.setEnabledCipherSuites(serverSocket.getSupportedCipherSuites());
 //			提交EDT线程输出服务器启动消息
 			EventQueue.invokeLater(()->{
-				String oriText = textPaneMsgRecord.getText();
-				textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("服务器启动").toString());
+				String oriText = textPaneLog.getText();
+				textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("服务器启动").toString());
 			});
 //			持续监听连接
 			while(true) {
@@ -329,8 +390,8 @@ public class XLChatServer extends JFrame {
 					} else {
 //						如果不是任何一种消息，则提交EDT线程显示错误信息
 						EventQueue.invokeLater(()->{
-							String oriText = textPaneMsgRecord.getText();
-							textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("接收到无法解析的JSON对象："+receive.toString()).toString());
+							String oriText = textPaneLog.getText();
+							textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("接收到无法解析的JSON对象："+receive.toString()).toString());
 						});
 					}
 				}
@@ -360,16 +421,16 @@ public class XLChatServer extends JFrame {
 			if (dstUser.equals("")) {
 //				如果接收方为空，则代表是公聊消息
 				EventQueue.invokeLater(()->{
-					String oriText = textPaneMsgRecord.getText();
-					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发送的公聊消息："+msgContent).toString());
+					String oriText = textPaneLog.getText();
+					textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发送的公聊消息："+msgContent).toString());
 				});
 //				将该消息转发给所有其他在线客户端
 				transferMsgToOtherUsers(msg);
 			} else {
 //				否则是私聊消息，仅转发给消息的接收者
 				EventQueue.invokeLater(()->{
-					String oriText = textPaneMsgRecord.getText();
-					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发给 "+dstUser+" 的私聊消息："+msgContent).toString());
+					String oriText = textPaneLog.getText();
+					textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append("转发 "+srcUser+" 发给 "+dstUser+" 的私聊消息："+msgContent).toString());
 				});
 //				获得目的用户的JSON输出流
 				JSONOutputStream jos = userManager.getUserJSONOutputStream(dstUser);
@@ -410,6 +471,9 @@ public class XLChatServer extends JFrame {
 				dbManager.connect();
 //				执行数据库登录操作，并获得结果
 				if (dbManager.signin(srcUser, password)) {
+					if (userManager.isUserOnline(srcUser)) {
+						userManager.removeUser(onlineUserDtm, srcUser);
+					}
 //					数据库回应称登录成功
 //					设置返回消息为成功状态
 					message.setStatus(StateMessage.SUCCESS);
@@ -422,8 +486,8 @@ public class XLChatServer extends JFrame {
 					transferMsgToOtherUsers(onlineMessage);
 //					提交EDT线程提示用户已登录
 					EventQueue.invokeLater(()->{
-						String oriText = textPaneMsgRecord.getText();
-						textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已登录").toString());
+						String oriText = textPaneLog.getText();
+						textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已登录").toString());
 					});
 //					将用户添加到用户管理器中
 					userManager.addUser(onlineUserDtm, srcUser, currentUserSocket, jis, jos);
@@ -484,8 +548,8 @@ public class XLChatServer extends JFrame {
 				transferMsgToOtherUsers(offlineMessage);
 //				再提交给EDT线程，在服务器这边输出一下
 				EventQueue.invokeLater(()->{
-					String oriText = textPaneMsgRecord.getText();
-					textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注销").toString());
+					String oriText = textPaneLog.getText();
+					textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注销").toString());
 				});
 //				从用户管理器中去掉这个用户
 				userManager.removeUser(onlineUserDtm, srcUser);
@@ -535,8 +599,8 @@ public class XLChatServer extends JFrame {
 					message.setError("");
 //					提交EDT线程输出注册成功
 					EventQueue.invokeLater(()->{
-						String oriText = textPaneMsgRecord.getText();
-						textPaneMsgRecord.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注册").toString());
+						String oriText = textPaneLog.getText();
+						textPaneLog.setText(new StringBuilder(oriText).append('\n').append(new Date().toString()).append('\n').append(srcUser+" 已注册").toString());
 					});
 				} else {
 //					数据库回应称注册失败
