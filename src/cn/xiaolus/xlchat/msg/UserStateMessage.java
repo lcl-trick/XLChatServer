@@ -9,15 +9,15 @@ package cn.xiaolus.xlchat.msg;
  */
 public class UserStateMessage extends AbstractMessage {
 	private static final long serialVersionUID = 2308566134889508488L;
-//	用户是上线还是下线
-	protected boolean userOnline;
 
-	public boolean isUserOnline() {
-		return userOnline;
+	public static int ONLINE = 200, OFFLINE = 201, STEALTH = 202;
+	protected int userState;
+	
+	public int getUserState() {
+		return userState;
 	}
-
-	public void setUserOnline(boolean userOnline) {
-		this.userOnline = userOnline;
+	public void setUserState(int userState) {
+		this.userState = userState;
 	}
 
 }

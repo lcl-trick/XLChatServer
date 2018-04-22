@@ -87,6 +87,7 @@ public class DataBaseManager extends DataBaseConnector {
 			return false;
 		}
 	}
+	
 	/**
 	 * 注册聊天用户的方法
 	 * @param user 用户名
@@ -119,6 +120,71 @@ public class DataBaseManager extends DataBaseConnector {
 			sql.executeUpdate();
 			return true;
 		} catch (NoSuchAlgorithmException | SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	/**
+	 * 更改密码方法
+	 * @param user 用户名
+	 * @param oldPassword 旧密码
+	 * @param newPassword 新密码
+	 * @return 是否修改成功
+	 */
+	public boolean changePassword(String user, String oldPassword, String newPassword) {
+		if(signin(user, oldPassword)) {
+			try {
+//				进行HASH操作，处理用户密码
+				MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+//				创建安全随机数生成器对象
+				SecureRandom secureRandom = new SecureRandom();
+//				获得盐值，盐值是一个十六进制字符串
+				String salt = Long.toHexString(secureRandom.nextLong());
+//				用户密码和盐值拼接，再进行HASH操作
+				byte[] passwordhash = messageDigest.digest(new StringBuilder(newPassword).append(salt).toString().getBytes());
+//				得到HASH值的base64编码值
+				String passwordhashb64 = Base64.getEncoder().encodeToString(passwordhash);
+//				获得数据库连接
+				Connection connection = getConnection();
+//				预构造SQL语句
+				PreparedStatement sql = connection.prepareStatement("update xlchat.users set passwdhashb64 = ? and salt = ? where user = ?");
+//				设置SQL参数
+				sql.setString(1, passwordhashb64);
+				sql.setString(2, salt);
+				sql.setString(3, user);
+//				提交更改
+				sql.executeUpdate();
+				return true;
+			} catch (NoSuchAlgorithmException | SQLException e) {
+				e.printStackTrace();
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * 更改密码方法
+	 * @param user 用户名
+	 * @param oldPassword 旧密码
+	 * @param newPassword 新密码
+	 * @return 是否修改成功
+	 */
+	public boolean changeName(String user, String newName) {
+		try {
+//			获得数据库连接
+			Connection connection = getConnection();
+//			预构造SQL语句
+			PreparedStatement sql = connection.prepareStatement("update xlchat.users set name = ? where user = ?");
+//			设置SQL参数
+			sql.setString(1, newName);
+			sql.setString(2, user);
+//			提交更改
+			sql.executeUpdate();
+			return true;
+		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
 		}
