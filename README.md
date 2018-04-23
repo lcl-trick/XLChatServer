@@ -14,3 +14,8 @@ XL聊天软件服务器端，实现消息收发和文件传输等功能 - 计算
 3. 传输使用JSON数据格式
 4. 使用基于PKCS12的密钥库
 5. 使用Properties配置文件管理配置
+
+### 许可证
+- Copyright (c) 2017-2018, 小路.
+- This program is free software; you can redistribute it and/or modify it under the terms and conditions of the GNU General Public License, version 3, as published by the Free Software Foundation.
+- This program is distributed in the hope it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
