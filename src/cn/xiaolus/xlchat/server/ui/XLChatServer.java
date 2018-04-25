@@ -550,7 +550,7 @@ public class XLChatServer extends JFrame implements ChooseListener {
 				}
 			}
 		}
-		userManager.removeAllUsers();
+		userManager.removeAllUsers(onlineUserDtm);
 	}
 	
 	/**
@@ -1090,8 +1090,11 @@ class UserManager {
 		return onlineUsers.keySet().toArray(new String[0]);
 	}
 	
-	public void removeAllUsers() {
+	public void removeAllUsers(DefaultTableModel dtm) {
 		onlineUsers.clear();
+		while (dtm.getRowCount() != 0) {
+			dtm.removeRow(0);
+		}
 	}
 	
 	/**
